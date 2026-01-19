@@ -1,0 +1,7 @@
+{
+  "name": "Fasopharm",
+  "description": "Système de gestion de pharmacie moderne assisté par IA. Inclut la gestion des stocks, un point de vente, et des outils d'analyse d'ordonnances et d'interactions médicamenteuses via Gemini.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
