@@ -37,7 +37,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, curren
     e.preventDefault();
     
     try {
-      const finalPharmacyId = formData.role === 'SUPER_ADMIN' ? '' : (isSuperAdmin ? formData.pharmacyId : currentUser.pharmacyId);
+      const finalPharmacyId = formData.role === 'SUPER_ADMIN' ? null : (isSuperAdmin ? (formData.pharmacyId || null) : currentUser.pharmacyId);
       
       if (editingId) {
         const updatedUser = await dbService.saveUser({ 
@@ -62,7 +62,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, curren
         resetForm();
       }
     } catch (error) {
-      alert("Erreur lors de la sauvegarde de l'utilisateur.");
+      console.error("Save User Error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
+      alert(`Erreur lors de la sauvegarde de l'utilisateur: ${errorMessage}`);
     }
   };
 
