@@ -281,7 +281,7 @@ const App: React.FC = () => {
           {currentUser.role === 'SUPER_ADMIN' ? (
             <div className="space-y-1">
               <NavItem view={ViewState.SUPER_ADMIN_DASHBOARD} icon={Globe} label="Réseau Global" allowedRoles={['SUPER_ADMIN']} />
-              <NavItem view={ViewState.USERS} icon={Users} label="Utilisateurs" allowedRoles={['SUPER_ADMIN']} />
+              <NavItem view={ViewState.USERS} icon={Users} label="Utilisateurs" allowedRoles={['SUPER_ADMIN', 'ADMIN']} />
               <NavItem view={ViewState.EXPORTS} icon={Database} label="Logs & Rapports" allowedRoles={['SUPER_ADMIN']} />
               
               <div className="pt-4 mt-4 border-t border-gray-100">
@@ -306,6 +306,7 @@ const App: React.FC = () => {
                 <NavItem view={ViewState.SUPPLIERS} icon={Truck} label="Fournisseurs" allowedRoles={['ADMIN']} />
                 <NavItem view={ViewState.INSURANCES} icon={ShieldCheck} label="Assurances" allowedRoles={['ADMIN']} />
                 <NavItem view={ViewState.SALES_HISTORY} icon={History} label="Historique" allowedRoles={['ADMIN']} />
+                <NavItem view={ViewState.USERS} icon={Users} label="Utilisateurs" allowedRoles={['ADMIN']} />
               </div>
 
               <div className="pt-4 mt-4 border-t border-gray-100">

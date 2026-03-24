@@ -111,18 +111,6 @@ const Login: React.FC<LoginProps> = ({ users, pharmacies = [], onLogin }) => {
           >
             S'authentifier
           </button>
-
-          <div className="text-center pt-4">
-            <p className="text-[9px] font-black text-gray-300 uppercase tracking-[0.2em] mb-3">Modes d'accès rapides</p>
-            <div className="flex flex-wrap justify-center gap-2">
-                <div className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-[10px] text-gray-400 font-mono">
-                   <span className="font-black text-gray-500">Super:</span> superadmin / root
-                </div>
-                <div className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-[10px] text-gray-400 font-mono">
-                   <span className="font-black text-gray-500">Admin:</span> admin / 123
-                </div>
-            </div>
-          </div>
         </form>
       </div>
       <p className="mt-8 text-gray-400 text-xs font-medium">© 2025 Fasopharm Infrastructure Group. Tous droits réservés.</p>
