@@ -37,14 +37,20 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, curren
     e.preventDefault();
     
     try {
+      const finalPharmacyId = formData.role === 'SUPER_ADMIN' ? '' : (isSuperAdmin ? formData.pharmacyId : currentUser.pharmacyId);
+      
       if (editingId) {
-        const updatedUser = await dbService.saveUser({ ...formData, id: editingId });
+        const updatedUser = await dbService.saveUser({ 
+          ...formData, 
+          id: editingId,
+          pharmacyId: finalPharmacyId
+        });
         setUsers(users.map(u => u.id === editingId ? updatedUser : u));
         alert(`Compte de ${formData.fullName} mis à jour.`);
         resetForm();
       } else {
         const newUser: Partial<User> = {
-          pharmacyId: isSuperAdmin ? formData.pharmacyId : currentUser.pharmacyId,
+          pharmacyId: finalPharmacyId,
           username: formData.username,
           password: formData.password,
           fullName: formData.fullName,
@@ -125,11 +131,11 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, curren
             </h3>
             
             <form onSubmit={handleSubmit} className="space-y-4">
-              {isSuperAdmin && (
+              {isSuperAdmin && formData.role !== 'SUPER_ADMIN' && (
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Assigner à la Pharmacie</label>
                   <select 
-                    required
+                    required={formData.role !== 'SUPER_ADMIN'}
                     className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white transition"
                     value={formData.pharmacyId} 
                     onChange={e => setFormData({ ...formData, pharmacyId: e.target.value })}
