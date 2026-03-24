@@ -97,11 +97,11 @@ const App: React.FC = () => {
     setDrugs(updatedDrugs);
   };
 
-  if (isLoading && currentUser) {
+  if (isLoading) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-gray-50 text-pharmacy-600">
         <Loader2 className="animate-spin mb-4" size={48} />
-        <p className="font-black uppercase tracking-widest text-[10px]">Chargement des données Cloud...</p>
+        <p className="font-black uppercase tracking-widest text-[10px]">Initialisation du Cloud...</p>
       </div>
     );
   }
