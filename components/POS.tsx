@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Drug, CartItem, Sale, PaymentMethod, User, Insurance, PendingOrder, Pharmacy } from '../types';
 import { ShoppingCart, Plus, Minus, Search, CreditCard, Banknote, Smartphone, Printer, CheckCircle, ShieldCheck, User as UserIcon, Send, Clock, X, ChevronDown, ChevronUp, Coins, Store, MapPin, Phone } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface POSProps {
   drugs: Drug[];
@@ -72,13 +73,13 @@ const POS: React.FC<POSProps> = ({ drugs, setDrugs, insurances, onSaleComplete, 
       if (existing.quantity < drug.stock) {
         setCart(cart.map(item => item.id === drug.id ? { ...item, quantity: item.quantity + 1 } : item));
       } else {
-        alert("Stock insuffisant !");
+        toast.error("Stock insuffisant !");
       }
     } else {
       if (drug.stock > 0) {
         setCart([...cart, { ...drug, quantity: 1 }]);
       } else {
-        alert("Produit en rupture de stock.");
+        toast.error("Produit en rupture de stock.");
       }
     }
     setSearchTerm('');
@@ -123,11 +124,11 @@ const POS: React.FC<POSProps> = ({ drugs, setDrugs, insurances, onSaleComplete, 
   const handleCheckout = () => {
     if (cart.length === 0) return;
     if (selectedInsuranceId && (!patientName.trim() || !policyNumber.trim())) {
-      alert("Infos patient requises.");
+      toast.error("Informations patient requises pour une vente avec assurance.");
       return;
     }
     if (!isAmountSufficient) {
-       alert("Montant reçu insuffisant.");
+       toast.error("Le montant reçu est insuffisant.");
        return;
     }
 

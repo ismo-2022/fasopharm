@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Insurance, User } from '../types';
 import { Plus, Search, Trash2, Edit2, ShieldCheck, Percent } from 'lucide-react';
 import { dbService } from '../services/databaseService';
+import { toast } from 'sonner';
 
 interface InsurancesProps {
   insurances: Insurance[];
@@ -40,13 +41,15 @@ const Insurances: React.FC<InsurancesProps> = ({ insurances, setInsurances, curr
       if (editingInsurance) {
         const updated = await dbService.saveInsurance({ ...insuranceData, id: editingInsurance.id });
         setInsurances(insurances.map(i => i.id === editingInsurance.id ? updated : i));
+        toast.success("Assurance mise à jour avec succès.");
       } else {
         const saved = await dbService.saveInsurance(insuranceData);
         setInsurances([...insurances, saved]);
+        toast.success("Assurance ajoutée avec succès.");
       }
       setIsModalOpen(false);
     } catch (error) {
-      alert("Erreur lors de la sauvegarde de l'assurance.");
+      toast.error("Erreur lors de la sauvegarde de l'assurance.");
     }
   };
 
@@ -55,8 +58,9 @@ const Insurances: React.FC<InsurancesProps> = ({ insurances, setInsurances, curr
       try {
         await dbService.deleteInsurance(id);
         setInsurances(insurances.filter(i => i.id !== id));
+        toast.success("Assurance supprimée avec succès.");
       } catch (error) {
-        alert("Erreur lors de la suppression.");
+        toast.error("Erreur lors de la suppression de l'assurance.");
       }
     }
   };

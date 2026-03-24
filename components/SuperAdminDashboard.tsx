@@ -7,6 +7,7 @@ import {
   DollarSign, AlertTriangle, Globe, BarChart3, ArrowUpRight, Zap,
   Megaphone, ShoppingBag, Package, Info, Bell, Trash2, Filter
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { dbService } from '../services/databaseService';
 
@@ -97,7 +98,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
       setIsBroadcastModalOpen(false);
       setBroadcastFormData({ title: '', message: '', type: 'INFO' });
     } catch (error) {
-      alert("Erreur broadcast");
+      toast.error("Erreur lors de la diffusion de l'annonce");
     } finally {
       setIsProcessing(false);
     }
@@ -109,7 +110,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
         await dbService.deleteBroadcast(id);
         setBroadcasts(prev => prev.filter(b => b.id !== id));
       } catch (error) {
-        alert("Erreur suppression");
+        toast.error("Erreur lors de la suppression de l'annonce");
       }
     }
   };
@@ -128,7 +129,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
         const updated = await dbService.savePharmacy({ ...pharma, status: nextStatus });
         setPharmacies(prev => prev.map(p => p.id === id ? updated : p));
       } catch (error) {
-        alert("Erreur lors de la mise à jour du statut.");
+        toast.error("Erreur lors de la mise à jour du statut.");
       }
     }
   };
@@ -142,7 +143,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
         await dbService.deletePharmacy(id);
         setPharmacies(prev => prev.filter(p => p.id !== id));
       } catch (error) {
-        alert("Erreur lors de la suppression.");
+        toast.error("Erreur lors de la suppression de la pharmacie.");
       }
     }
   };
@@ -158,7 +159,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
 
   const handleExportSales = () => {
     if (allSales.length === 0) {
-      alert("Aucune vente à exporter.");
+      toast.info("Aucune vente à exporter.");
       return;
     }
 
@@ -192,7 +193,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
       setIsUserModalOpen(false);
       setUserFormData({ fullName: '', username: '', password: '', role: 'SUPER_ADMIN', pharmacyId: '' });
     } catch (error) {
-      alert("Erreur lors de la création de l'utilisateur.");
+      toast.error("Erreur lors de la création de l'utilisateur.");
     } finally {
       setIsProcessing(false);
     }
@@ -204,7 +205,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
         await dbService.deleteUser(id);
         setUsers(prev => prev.filter(u => u.id !== id));
       } catch (error) {
-        alert("Erreur lors de la suppression.");
+        toast.error("Erreur lors de la suppression de l'utilisateur.");
       }
     }
   };
@@ -287,7 +288,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
 
       setIsModalOpen(false);
     } catch (error) {
-      alert("Erreur lors du déploiement de l'instance.");
+      toast.error("Erreur lors du déploiement de l'instance.");
     } finally {
       setIsProcessing(false);
     }

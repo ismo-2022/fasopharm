@@ -2,6 +2,7 @@
 import React from 'react';
 import { Drug, Sale, User, Supplier, Insurance, Pharmacy } from '../types';
 import { Download, FileSpreadsheet, Database, Shield, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface DataExportProps {
   drugs: Drug[];
@@ -21,7 +22,7 @@ const DataExport: React.FC<DataExportProps> = ({ drugs, sales, users, suppliers,
 
   const downloadCSV = (data: any[], filename: string) => {
     if (!data || data.length === 0) {
-      alert("Aucune donnée à exporter.");
+      toast.info("Aucune donnée à exporter.");
       return;
     }
 

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { User, UserRole, Pharmacy } from '../types';
 import { UserPlus, Trash2, User as UserIcon, Edit2, X, ShieldCheck, Building2, Search, CheckCircle } from 'lucide-react';
 import { dbService } from '../services/databaseService';
+import { toast } from 'sonner';
 
 interface UserManagementProps {
   users: User[];
@@ -46,7 +47,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, curren
           pharmacyId: finalPharmacyId
         });
         setUsers(users.map(u => u.id === editingId ? updatedUser : u));
-        alert(`Compte de ${formData.fullName} mis à jour.`);
+        toast.success(`Compte de ${formData.fullName} mis à jour.`);
         resetForm();
       } else {
         const newUser: Partial<User> = {
@@ -58,13 +59,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, curren
         };
         const savedUser = await dbService.saveUser(newUser);
         setUsers(prev => [...prev, savedUser]);
-        alert(`Nouveau compte créé pour ${savedUser.fullName}.`);
+        toast.success(`Nouveau compte créé pour ${savedUser.fullName}.`);
         resetForm();
       }
     } catch (error) {
       console.error("Save User Error:", error);
       const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
-      alert(`Erreur lors de la sauvegarde de l'utilisateur: ${errorMessage}`);
+      toast.error(`Erreur lors de la sauvegarde de l'utilisateur: ${errorMessage}`);
     }
   };
 
@@ -257,8 +258,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, curren
                                  if (window.confirm("Supprimer ce compte ?")) {
                                    dbService.deleteUser(user.id).then(() => {
                                      setUsers(prev => prev.filter(u => u.id !== user.id));
+                                     toast.success("Utilisateur supprimé avec succès.");
                                    }).catch(() => {
-                                     alert("Erreur lors de la suppression.");
+                                     toast.error("Erreur lors de la suppression de l'utilisateur.");
                                    });
                                  }
                                }} 
@@ -303,8 +305,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, curren
                                if (window.confirm("Supprimer ce compte ?")) {
                                  dbService.deleteUser(user.id).then(() => {
                                    setUsers(prev => prev.filter(u => u.id !== user.id));
+                                   toast.success("Utilisateur supprimé avec succès.");
                                  }).catch(() => {
-                                   alert("Erreur lors de la suppression.");
+                                   toast.error("Erreur lors de la suppression de l'utilisateur.");
                                  });
                                }
                              }} 

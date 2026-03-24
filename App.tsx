@@ -23,6 +23,8 @@ import {
   Menu, X as CloseIcon, Settings, Sliders
 } from 'lucide-react';
 
+import { Toaster, toast } from 'sonner';
+
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
@@ -250,6 +252,7 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-gray-50 font-sans overflow-hidden relative">
+      <Toaster position="top-right" richColors />
       {showCashClosing && <CashClosing sales={sales} currentUser={currentUser} onClose={() => setShowCashClosing(false)} pharmacies={pharmacies} />}
       
       {/* Overlay for mobile menu */}

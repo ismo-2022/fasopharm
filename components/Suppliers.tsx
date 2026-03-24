@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Supplier, User } from '../types';
 import { Plus, Search, Trash2, Edit2, Truck, Phone, Mail, MapPin } from 'lucide-react';
 import { dbService } from '../services/databaseService';
+import { toast } from 'sonner';
 
 interface SuppliersProps {
   suppliers: Supplier[];
@@ -42,13 +43,15 @@ const Suppliers: React.FC<SuppliersProps> = ({ suppliers, setSuppliers, currentU
       if (editingSupplier) {
         const updated = await dbService.saveSupplier({ ...supplierData, id: editingSupplier.id });
         setSuppliers(suppliers.map(s => s.id === editingSupplier.id ? updated : s));
+        toast.success("Fournisseur mis à jour avec succès.");
       } else {
         const saved = await dbService.saveSupplier(supplierData);
         setSuppliers([...suppliers, saved]);
+        toast.success("Fournisseur ajouté avec succès.");
       }
       setIsModalOpen(false);
     } catch (error) {
-      alert("Erreur lors de la sauvegarde du fournisseur.");
+      toast.error("Erreur lors de la sauvegarde du fournisseur.");
     }
   };
 
@@ -57,8 +60,9 @@ const Suppliers: React.FC<SuppliersProps> = ({ suppliers, setSuppliers, currentU
       try {
         await dbService.deleteSupplier(id);
         setSuppliers(suppliers.filter(s => s.id !== id));
+        toast.success("Fournisseur supprimé avec succès.");
       } catch (error) {
-        alert("Erreur lors de la suppression.");
+        toast.error("Erreur lors de la suppression du fournisseur.");
       }
     }
   };
