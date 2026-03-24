@@ -70,8 +70,9 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ sales }) => {
         </div>
 
         {/* Table */}
-        <div className="overflow-auto flex-1">
-          <table className="min-w-full divide-y divide-gray-200">
+        <div className="overflow-auto flex-1 custom-scrollbar">
+          {/* Desktop Table */}
+          <table className="min-w-full divide-y divide-gray-200 hidden md:table">
             <thead className="bg-gray-50 sticky top-0">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Heure</th>
@@ -111,6 +112,40 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ sales }) => {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile Card Layout */}
+          <div className="md:hidden divide-y divide-gray-100">
+            {filteredSales.map(sale => (
+              <div key={sale.id} className="p-4 space-y-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">{formatDate(sale.timestamp)}</p>
+                    <div className="font-mono text-[10px] text-gray-400">#{sale.id.slice(-6)}</div>
+                  </div>
+                  <button onClick={() => setSelectedSale(sale)} className="text-pharmacy-600 bg-pharmacy-50 p-2 rounded-lg transition">
+                    <Eye size={18} />
+                  </button>
+                </div>
+                <div className="flex justify-between items-center">
+                  <div className="space-y-1">
+                    <p className="text-xs text-gray-900 font-medium">{sale.servedBy}</p>
+                    <div className="flex items-center gap-2 text-[10px] text-gray-600">
+                      {getPaymentIcon(sale.paymentMethod)}
+                      <span>{getPaymentLabel(sale.paymentMethod)}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-gray-900">{formatCurrency(sale.total)}</p>
+                    {sale.patientName && (
+                      <div className="text-indigo-600 font-medium text-[10px] flex items-center justify-end gap-1">
+                        <ShieldCheck size={10}/> {sale.patientName}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

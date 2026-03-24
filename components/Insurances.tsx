@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { Insurance } from '../types';
+import { Insurance, User } from '../types';
 import { Plus, Search, Trash2, Edit2, ShieldCheck, Percent } from 'lucide-react';
 import { dbService } from '../services/databaseService';
 
 interface InsurancesProps {
   insurances: Insurance[];
   setInsurances: React.Dispatch<React.SetStateAction<Insurance[]>>;
+  currentUser: User;
 }
 
-const Insurances: React.FC<InsurancesProps> = ({ insurances, setInsurances }) => {
+const Insurances: React.FC<InsurancesProps> = ({ insurances, setInsurances, currentUser }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingInsurance, setEditingInsurance] = useState<Insurance | null>(null);
@@ -31,11 +32,16 @@ const Insurances: React.FC<InsurancesProps> = ({ insurances, setInsurances }) =>
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const insuranceData = {
+        ...formData,
+        pharmacyId: currentUser.pharmacyId || ''
+      };
+
       if (editingInsurance) {
-        const updated = await dbService.saveInsurance({ ...formData, id: editingInsurance.id });
+        const updated = await dbService.saveInsurance({ ...insuranceData, id: editingInsurance.id });
         setInsurances(insurances.map(i => i.id === editingInsurance.id ? updated : i));
       } else {
-        const saved = await dbService.saveInsurance(formData);
+        const saved = await dbService.saveInsurance(insuranceData);
         setInsurances([...insurances, saved]);
       }
       setIsModalOpen(false);

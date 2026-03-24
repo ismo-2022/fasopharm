@@ -1,5 +1,5 @@
 
-import { Drug, Sale, User, Supplier, Insurance, Pharmacy } from '../types';
+import { Drug, Sale, User, Supplier, Insurance, Pharmacy, Broadcast } from '../types';
 import { supabase } from './supabase';
 
 class DatabaseService {
@@ -21,6 +21,14 @@ class DatabaseService {
       .single();
     if (error) throw error;
     return data;
+  }
+
+  async deletePharmacy(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('pharmacies')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
   }
 
   // --- USERS ---
@@ -206,11 +214,83 @@ class DatabaseService {
   }
 
   async getAuditLogs(pharmacyId?: string) {
-    let query = supabase.from('logs').select('*').order('timestamp', { ascending: false }).limit(100);
-    // If we want to filter logs by pharmacy, we'd need a join or pharmacyId in logs
+    let query = supabase
+      .from('logs')
+      .select(`
+        *,
+        users (
+          fullName
+        )
+      `)
+      .order('timestamp', { ascending: false })
+      .limit(100);
+    
     const { data, error } = await query;
     if (error) throw error;
     return data || [];
+  }
+
+  // --- BACKUP & RESTORE ---
+  async getBackupData(pharmacyId?: string) {
+    const tables = ['pharmacies', 'users', 'drugs', 'sales', 'suppliers', 'insurances', 'broadcasts'];
+    const backup: Record<string, any[]> = {};
+
+    for (const table of tables) {
+      let query = supabase.from(table).select('*');
+      if (pharmacyId && ['drugs', 'sales', 'suppliers', 'insurances', 'users'].includes(table)) {
+        query = query.eq('pharmacyId', pharmacyId);
+      }
+      const { data } = await query;
+      backup[table] = data || [];
+    }
+
+    return backup;
+  }
+
+  async restoreBackupData(backup: Record<string, any[]>, userId: string) {
+    // Order matters for foreign keys
+    const tables = ['pharmacies', 'users', 'suppliers', 'insurances', 'drugs', 'sales', 'broadcasts'];
+    
+    for (const table of tables) {
+      if (backup[table] && backup[table].length > 0) {
+        const { error } = await supabase.from(table).upsert(backup[table]);
+        if (error) {
+          console.error(`Error restoring table ${table}:`, error);
+          throw error;
+        }
+      }
+    }
+
+    await this.logAction(userId, 'RESTORE_BACKUP', `Restauration complète effectuée`);
+  }
+
+  // --- BROADCASTS ---
+  async getBroadcasts(): Promise<Broadcast[]> {
+    const { data, error } = await supabase
+      .from('broadcasts')
+      .select('*')
+      .order('timestamp', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
+  async saveBroadcast(broadcast: Partial<Broadcast>): Promise<Broadcast> {
+    const id = broadcast.id || `bc_${Date.now()}`;
+    const { data, error } = await supabase
+      .from('broadcasts')
+      .upsert({ ...broadcast, id, timestamp: new Date().toISOString() })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async deleteBroadcast(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('broadcasts')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
   }
 }
 

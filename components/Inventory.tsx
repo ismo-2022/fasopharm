@@ -125,8 +125,9 @@ const Inventory: React.FC<InventoryProps> = ({ drugs, setDrugs, currentUser }) =
           </div>
         </div>
 
-        <div className="overflow-auto flex-1">
-          <table className="min-w-full divide-y divide-gray-100">
+        <div className="overflow-auto flex-1 custom-scrollbar">
+          {/* Desktop Table View */}
+          <table className="min-w-full divide-y divide-gray-100 hidden md:table">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Désignation</th>
@@ -167,6 +168,43 @@ const Inventory: React.FC<InventoryProps> = ({ drugs, setDrugs, currentUser }) =
               ))}
             </tbody>
           </table>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden divide-y divide-gray-100">
+            {filteredDrugs.map(drug => (
+              <div key={drug.id} className="p-4 space-y-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-pharmacy-50 text-pharmacy-600 rounded-lg"><Package size={18} /></div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-900">{drug.name}</p>
+                      <p className="text-[10px] text-gray-400 font-medium">{drug.dosage}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    {canEdit && <button onClick={() => handleOpenModal(drug)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"><Edit2 size={16} /></button>}
+                    {canDelete && <button onClick={() => handleDelete(drug.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"><Trash2 size={16} /></button>}
+                  </div>
+                </div>
+                <div className="flex justify-between items-center pt-2">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Catégorie</p>
+                    <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-[10px] font-black uppercase">{drug.category}</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Prix</p>
+                    <p className="text-sm font-bold text-gray-700">{drug.price.toLocaleString()} F</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Stock</p>
+                    <div className={`inline-flex px-3 py-1 rounded-full text-xs font-black ${drug.stock < 20 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                      {drug.stock}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

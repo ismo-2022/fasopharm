@@ -206,8 +206,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, curren
                  />
                </div>
              </div>
-             <div className="overflow-x-auto">
-               <table className="w-full text-left">
+             <div className="overflow-x-auto custom-scrollbar">
+               {/* Desktop Table */}
+               <table className="w-full text-left hidden md:table">
                  <thead>
                    <tr className="bg-gray-50">
                      <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Utilisateur</th>
@@ -264,6 +265,51 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, curren
                    ))}
                  </tbody>
                </table>
+
+               {/* Mobile Card Layout */}
+               <div className="md:hidden divide-y divide-gray-100">
+                 {displayUsers.map(user => (
+                   <div key={user.id} className={`p-4 space-y-3 ${editingId === user.id ? 'bg-indigo-50' : ''}`}>
+                     <div className="flex justify-between items-start">
+                       <div className="flex items-center">
+                         <div className={`h-10 w-10 rounded-xl flex items-center justify-center mr-3 shadow-inner ${user.role === 'ADMIN' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
+                           <UserIcon size={20} />
+                         </div>
+                         <div>
+                           <p className="text-sm font-bold text-gray-900">{user.fullName}</p>
+                           <p className="text-[10px] text-gray-400 font-mono">{user.username}</p>
+                         </div>
+                       </div>
+                       {getRoleBadge(user.role)}
+                     </div>
+                     <div className="flex justify-between items-center pt-2">
+                       <div className="flex items-center gap-2 text-xs text-gray-600 font-medium">
+                         <Building2 size={14} className="text-gray-400" />
+                         {getPharmacyName(user.pharmacyId)}
+                       </div>
+                       <div className="flex gap-2">
+                         <button onClick={() => startEdit(user)} className="p-2 text-indigo-600 hover:bg-indigo-100 rounded-lg transition"><Edit2 size={16} /></button>
+                         {user.id !== currentUser.id && (
+                           <button 
+                             onClick={() => {
+                               if (window.confirm("Supprimer ce compte ?")) {
+                                 dbService.deleteUser(user.id).then(() => {
+                                   setUsers(prev => prev.filter(u => u.id !== user.id));
+                                 }).catch(() => {
+                                   alert("Erreur lors de la suppression.");
+                                 });
+                               }
+                             }} 
+                             className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
+                           >
+                             <Trash2 size={16} />
+                           </button>
+                         )}
+                       </div>
+                     </div>
+                   </div>
+                 ))}
+               </div>
              </div>
           </div>
         </div>

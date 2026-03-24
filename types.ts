@@ -75,17 +75,10 @@ export interface PendingOrder {
   policyNumber?: string;
 }
 
-export interface PrescriptionAnalysis {
-  medications: { name: string; dosage?: string; instructions?: string }[];
-  notes: string;
-}
-
 export enum ViewState {
   DASHBOARD = 'DASHBOARD',
   INVENTORY = 'INVENTORY',
   POS = 'POS',
-  ASSISTANT = 'ASSISTANT',
-  SCANNER = 'SCANNER',
   USERS = 'USERS',
   SALES_HISTORY = 'SALES_HISTORY',
   SUPPLIERS = 'SUPPLIERS',
@@ -93,14 +86,11 @@ export enum ViewState {
   EXPORTS = 'EXPORTS',
   ORDERS = 'ORDERS',
   SUPER_ADMIN_DASHBOARD = 'SUPER_ADMIN_DASHBOARD',
-  PHARMACY_MANAGEMENT = 'PHARMACY_MANAGEMENT'
-}
-
-export interface Message {
-  id: string;
-  role: 'user' | 'model';
-  text: string;
-  timestamp: Date;
+  PHARMACY_MANAGEMENT = 'PHARMACY_MANAGEMENT',
+  SYSTEM_CONFIG = 'SYSTEM_CONFIG',
+  SETTINGS = 'SETTINGS',
+  AUDIT_LOGS = 'AUDIT_LOGS',
+  BACKUP = 'BACKUP'
 }
 
 export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'AGENT' | 'CASHIER' | 'SELLER';
@@ -112,4 +102,13 @@ export interface User {
   password: string;
   fullName: string;
   role: UserRole;
+}
+
+export interface Broadcast {
+  id: string;
+  title: string;
+  message: string;
+  type: 'INFO' | 'WARNING' | 'URGENT';
+  timestamp: Date;
+  authorId: string;
 }

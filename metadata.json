@@ -1,7 +1,5 @@
 {
   "name": "Fasopharm_Cloud",
-  "description": "Système de gestion de pharmacie avec backend Supabase persistant et intelligence artificielle distribuée.",
-  "requestFramePermissions": [
-    "camera"
-  ]
+  "description": "Système de gestion de pharmacie avec backend Supabase persistant.",
+  "requestFramePermissions": []
 }

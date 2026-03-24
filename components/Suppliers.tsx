@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { Supplier } from '../types';
+import { Supplier, User } from '../types';
 import { Plus, Search, Trash2, Edit2, Truck, Phone, Mail, MapPin } from 'lucide-react';
 import { dbService } from '../services/databaseService';
 
 interface SuppliersProps {
   suppliers: Supplier[];
   setSuppliers: React.Dispatch<React.SetStateAction<Supplier[]>>;
+  currentUser: User;
 }
 
-const Suppliers: React.FC<SuppliersProps> = ({ suppliers, setSuppliers }) => {
+const Suppliers: React.FC<SuppliersProps> = ({ suppliers, setSuppliers, currentUser }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
@@ -33,11 +34,16 @@ const Suppliers: React.FC<SuppliersProps> = ({ suppliers, setSuppliers }) => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const supplierData = {
+        ...formData,
+        pharmacyId: currentUser.pharmacyId || ''
+      };
+
       if (editingSupplier) {
-        const updated = await dbService.saveSupplier({ ...formData, id: editingSupplier.id });
+        const updated = await dbService.saveSupplier({ ...supplierData, id: editingSupplier.id });
         setSuppliers(suppliers.map(s => s.id === editingSupplier.id ? updated : s));
       } else {
-        const saved = await dbService.saveSupplier(formData);
+        const saved = await dbService.saveSupplier(supplierData);
         setSuppliers([...suppliers, saved]);
       }
       setIsModalOpen(false);
