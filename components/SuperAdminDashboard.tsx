@@ -7,6 +7,7 @@ import {
   DollarSign, AlertTriangle, Globe, BarChart3, ArrowUpRight, Zap
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { dbService } from '../services/databaseService';
 
 interface SuperAdminDashboardProps {
   pharmacies: Pharmacy[];
@@ -55,7 +56,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     };
   }).sort((a, b) => b.revenue - a.revenue);
 
-  const handleToggleStatus = (id: string) => {
+  const handleToggleStatus = async (id: string) => {
     const pharma = pharmacies.find(p => p.id === id);
     if (!pharma) return;
 
@@ -65,7 +66,12 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
       : `Réactiver le point de vente "${pharma.name}" ?`;
 
     if (window.confirm(message)) {
-      setPharmacies(prev => prev.map(p => p.id === id ? { ...p, status: nextStatus } : p));
+      try {
+        const updated = await dbService.savePharmacy({ ...pharma, status: nextStatus });
+        setPharmacies(prev => prev.map(p => p.id === id ? updated : p));
+      } catch (error) {
+        alert("Erreur lors de la mise à jour du statut.");
+      }
     }
   };
 
@@ -75,44 +81,49 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
 
-    setTimeout(() => {
+    try {
       if (editingPharma) {
-        setPharmacies(prev => prev.map(p => 
-          p.id === editingPharma.id 
-          ? { ...p, name: formData.name, address: formData.address, phone: formData.phone } 
-          : p
-        ));
+        const updated = await dbService.savePharmacy({ 
+          ...editingPharma, 
+          name: formData.name, 
+          address: formData.address, 
+          phone: formData.phone 
+        });
+        setPharmacies(prev => prev.map(p => p.id === editingPharma.id ? updated : p));
       } else {
-        const pharmacyId = `pharma_${Date.now()}`;
-        const newPharmacy: Pharmacy = {
-          id: pharmacyId,
+        const newPharmacy: Partial<Pharmacy> = {
           name: formData.name,
           address: formData.address,
           phone: formData.phone,
-          status: 'ACTIVE',
-          createdAt: new Date()
+          status: 'ACTIVE'
         };
 
-        const initialAdmin: User = {
-          id: `user_${Date.now()}`,
-          pharmacyId: pharmacyId,
+        const savedPharma = await dbService.savePharmacy(newPharmacy);
+
+        const initialAdmin: Partial<User> = {
+          pharmacyId: savedPharma.id,
           username: formData.adminUsername,
           password: formData.adminPassword,
           fullName: formData.adminName,
           role: 'ADMIN'
         };
 
-        setPharmacies(prev => [...prev, newPharmacy]);
-        setUsers(prev => [...prev, initialAdmin]);
+        const savedAdmin = await dbService.saveUser(initialAdmin);
+
+        setPharmacies(prev => [...prev, savedPharma]);
+        setUsers(prev => [...prev, savedAdmin]);
       }
 
-      setIsProcessing(false);
       setIsModalOpen(false);
-    }, 800);
+    } catch (error) {
+      alert("Erreur lors du déploiement de l'instance.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const filteredPharmacies = pharmacies.filter(p => 

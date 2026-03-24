@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Supplier } from '../types';
 import { Plus, Search, Trash2, Edit2, Truck, Phone, Mail, MapPin } from 'lucide-react';
+import { dbService } from '../services/databaseService';
 
 interface SuppliersProps {
   suppliers: Supplier[];
@@ -29,23 +30,30 @@ const Suppliers: React.FC<SuppliersProps> = ({ suppliers, setSuppliers }) => {
     setIsModalOpen(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingSupplier) {
-      setSuppliers(suppliers.map(s => s.id === editingSupplier.id ? { ...s, ...formData } as Supplier : s));
-    } else {
-      const newSupplier: Supplier = {
-        ...formData,
-        id: Date.now().toString(),
-      } as Supplier;
-      setSuppliers([...suppliers, newSupplier]);
+    try {
+      if (editingSupplier) {
+        const updated = await dbService.saveSupplier({ ...formData, id: editingSupplier.id });
+        setSuppliers(suppliers.map(s => s.id === editingSupplier.id ? updated : s));
+      } else {
+        const saved = await dbService.saveSupplier(formData);
+        setSuppliers([...suppliers, saved]);
+      }
+      setIsModalOpen(false);
+    } catch (error) {
+      alert("Erreur lors de la sauvegarde du fournisseur.");
     }
-    setIsModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Supprimer ce fournisseur ?')) {
-      setSuppliers(suppliers.filter(s => s.id !== id));
+      try {
+        await dbService.deleteSupplier(id);
+        setSuppliers(suppliers.filter(s => s.id !== id));
+      } catch (error) {
+        alert("Erreur lors de la suppression.");
+      }
     }
   };
 

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { User, UserRole, Pharmacy } from '../types';
 import { UserPlus, Trash2, User as UserIcon, Edit2, X, ShieldCheck, Building2, Search, CheckCircle } from 'lucide-react';
+import { dbService } from '../services/databaseService';
 
 interface UserManagementProps {
   users: User[];
@@ -32,25 +33,30 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, curren
     return belongsToMe && matchesSearch;
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (editingId) {
-      setUsers(users.map(u => u.id === editingId ? { ...u, ...formData } : u));
-      alert(`Compte de ${formData.fullName} mis à jour.`);
-      resetForm();
-    } else {
-      const newUser: User = {
-        id: `user_${Date.now()}`,
-        pharmacyId: isSuperAdmin ? formData.pharmacyId : currentUser.pharmacyId,
-        username: formData.username,
-        password: formData.password,
-        fullName: formData.fullName,
-        role: formData.role
-      };
-      setUsers(prev => [...prev, newUser]);
-      alert(`Nouveau compte créé pour ${newUser.fullName}.`);
-      resetForm();
+    try {
+      if (editingId) {
+        const updatedUser = await dbService.saveUser({ ...formData, id: editingId });
+        setUsers(users.map(u => u.id === editingId ? updatedUser : u));
+        alert(`Compte de ${formData.fullName} mis à jour.`);
+        resetForm();
+      } else {
+        const newUser: Partial<User> = {
+          pharmacyId: isSuperAdmin ? formData.pharmacyId : currentUser.pharmacyId,
+          username: formData.username,
+          password: formData.password,
+          fullName: formData.fullName,
+          role: formData.role
+        };
+        const savedUser = await dbService.saveUser(newUser);
+        setUsers(prev => [...prev, savedUser]);
+        alert(`Nouveau compte créé pour ${savedUser.fullName}.`);
+        resetForm();
+      }
+    } catch (error) {
+      alert("Erreur lors de la sauvegarde de l'utilisateur.");
     }
   };
 
@@ -239,7 +245,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, curren
                            {user.id !== currentUser.id && (
                              <button 
                                onClick={() => {
-                                 if (window.confirm("Supprimer ce compte ?")) setUsers(prev => prev.filter(u => u.id !== user.id));
+                                 if (window.confirm("Supprimer ce compte ?")) {
+                                   dbService.deleteUser(user.id).then(() => {
+                                     setUsers(prev => prev.filter(u => u.id !== user.id));
+                                   }).catch(() => {
+                                     alert("Erreur lors de la suppression.");
+                                   });
+                                 }
                                }} 
                                className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
                              >

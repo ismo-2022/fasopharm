@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { ViewState, Drug, Sale, User, UserRole, Supplier, Insurance, PendingOrder, Pharmacy } from './types';
-import { INITIAL_DRUGS, INITIAL_USERS, INITIAL_SUPPLIERS, INITIAL_INSURANCES, INITIAL_PHARMACIES } from './constants';
+import { INITIAL_USERS, INITIAL_PHARMACIES } from './constants';
+import { dbService } from './services/databaseService';
 import Dashboard from './components/Dashboard';
 import Inventory from './components/Inventory';
 import POS from './components/POS';
@@ -18,101 +19,123 @@ import CashClosing from './components/CashClosing';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 
 import { 
-  LayoutDashboard, Package, ShoppingCart, Bot, ScanLine, Activity, LogOut, Users, Bell, 
-  History, Truck, ShieldCheck, Database, ShoppingBag, Wallet,
-  ChevronDown, ChevronRight, Layers, FileText, BrainCircuit, Building2, Globe
+  LayoutDashboard, Package, ShoppingCart, Activity, LogOut, Users, 
+  History, Truck, Database, ShoppingBag, Wallet,
+  Building2, Globe, Loader2, BrainCircuit, ScanLine, Server, ShieldCheck
 } from 'lucide-react';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>(INITIAL_USERS);
-  const [pharmacies, setPharmacies] = useState<Pharmacy[]>(INITIAL_PHARMACIES);
+  const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.DASHBOARD);
   
-  const [drugs, setDrugs] = useState<Drug[]>(INITIAL_DRUGS);
+  const [drugs, setDrugs] = useState<Drug[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
-  const [insurances, setInsurances] = useState<Insurance[]>(INITIAL_INSURANCES);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [insurances, setInsurances] = useState<Insurance[]>([]);
   const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
   
+  const [isLoading, setIsLoading] = useState(true);
   const [showCashClosing, setShowCashClosing] = useState(false);
 
   useEffect(() => {
-    if (currentUser && currentUser.role !== 'SUPER_ADMIN' && currentUser.pharmacyId) {
-      const myPharma = pharmacies.find(p => p.id === currentUser.pharmacyId);
-      if (myPharma && myPharma.status === 'SUSPENDED') {
-        alert("Votre établissement a été suspendu par l'administration centrale.");
-        setCurrentUser(null);
+    const loadInitialData = async () => {
+      try {
+        const [p, u] = await Promise.all([
+          dbService.getPharmacies(),
+          dbService.getUsers()
+        ]);
+        setPharmacies(p);
+        setUsers(u);
+      } catch (err) {
+        console.error('Failed to load initial data:', err);
+      } finally {
+        setIsLoading(false);
       }
-    }
-  }, [pharmacies, currentUser]);
+    };
+    loadInitialData();
+  }, []);
 
   useEffect(() => {
-    if (currentUser) {
-      if (currentUser.role === 'SUPER_ADMIN') setCurrentView(ViewState.SUPER_ADMIN_DASHBOARD);
-      else if (currentUser.role === 'CASHIER') setCurrentView(ViewState.POS);
-      else if (currentUser.role === 'AGENT') setCurrentView(ViewState.INVENTORY);
-      else if (currentUser.role === 'SELLER') setCurrentView(ViewState.POS);
-      else setCurrentView(ViewState.DASHBOARD);
-    }
+    const loadAppData = async () => {
+      if (!currentUser) return;
+      setIsLoading(true);
+      try {
+        const phId = currentUser.role === 'SUPER_ADMIN' ? undefined : currentUser.pharmacyId;
+        const [d, s] = await Promise.all([
+          dbService.getDrugs(phId),
+          dbService.getSales(phId)
+        ]);
+        
+        if (currentUser.pharmacyId) {
+          const [sup, ins] = await Promise.all([
+            dbService.getSuppliers(currentUser.pharmacyId),
+            dbService.getInsurances(currentUser.pharmacyId)
+          ]);
+          setSuppliers(sup);
+          setInsurances(ins);
+        }
+
+        setDrugs(d);
+        setSales(s);
+      } catch (err) {
+        console.error('Failed to load app data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadAppData();
   }, [currentUser]);
 
-  const handleLogout = () => {
-    setCurrentUser(null);
+  const handleSaleComplete = async (sale: Sale) => {
+    if (!currentUser) return;
+    const completedSale = await dbService.createSale(sale, currentUser.id);
+    setSales(prev => [completedSale, ...prev]);
+    // Refresh stock
+    const updatedDrugs = await dbService.getDrugs(currentUser.role === 'SUPER_ADMIN' ? undefined : currentUser.pharmacyId);
+    setDrugs(updatedDrugs);
   };
+
+  if (isLoading && currentUser) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-gray-50 text-pharmacy-600">
+        <Loader2 className="animate-spin mb-4" size={48} />
+        <p className="font-black uppercase tracking-widest text-[10px]">Chargement des données Cloud...</p>
+      </div>
+    );
+  }
 
   if (!currentUser) {
     return <Login users={users} pharmacies={pharmacies} onLogin={setCurrentUser} />;
   }
 
-  const currentPharmacyId = currentUser.pharmacyId;
-  const filteredDrugs = currentUser.role === 'SUPER_ADMIN' ? drugs : drugs.filter(d => d.pharmacyId === currentPharmacyId);
-  const filteredSales = currentUser.role === 'SUPER_ADMIN' ? sales : sales.filter(s => s.pharmacyId === currentPharmacyId);
-  const filteredSuppliers = currentUser.role === 'SUPER_ADMIN' ? suppliers : suppliers.filter(s => s.pharmacyId === currentPharmacyId);
-  const filteredInsurances = currentUser.role === 'SUPER_ADMIN' ? insurances : insurances.filter(i => i.pharmacyId === currentPharmacyId);
-
   const renderContent = () => {
     switch (currentView) {
       case ViewState.SUPER_ADMIN_DASHBOARD:
-        return (
-          <SuperAdminDashboard 
-            pharmacies={pharmacies} 
-            setPharmacies={setPharmacies} 
-            users={users} 
-            setUsers={setUsers}
-            allDrugs={drugs}
-            allSales={sales}
-          />
-        );
+        return <SuperAdminDashboard pharmacies={pharmacies} setPharmacies={setPharmacies} users={users} setUsers={setUsers} allDrugs={drugs} allSales={sales} />;
       case ViewState.DASHBOARD:
-        return <Dashboard drugs={filteredDrugs} sales={filteredSales} />;
+        return <Dashboard drugs={drugs} sales={sales} />;
       case ViewState.INVENTORY:
-        return <Inventory drugs={filteredDrugs} setDrugs={setDrugs} currentUser={currentUser} />;
+        return <Inventory drugs={drugs} setDrugs={setDrugs} currentUser={currentUser} />;
       case ViewState.POS:
-        return (
-          <POS 
-            drugs={filteredDrugs} setDrugs={setDrugs} insurances={filteredInsurances} 
-            onSaleComplete={(s) => setSales([...sales, {...s, pharmacyId: currentPharmacyId || ''}])} 
-            currentUser={currentUser} pendingOrders={pendingOrders} setPendingOrders={setPendingOrders}
-            pharmacies={pharmacies}
-          />
-        );
+        return <POS drugs={drugs} setDrugs={setDrugs} insurances={insurances} onSaleComplete={handleSaleComplete} currentUser={currentUser} pendingOrders={pendingOrders} setPendingOrders={setPendingOrders} pharmacies={pharmacies} />;
       case ViewState.ASSISTANT:
-        return <AIAssistant drugs={filteredDrugs} sales={filteredSales} suppliers={filteredSuppliers} insurances={filteredInsurances} />;
+        return <AIAssistant drugs={drugs} sales={sales} suppliers={suppliers} insurances={insurances} onAddToCart={(d) => setCurrentView(ViewState.POS)} />;
       case ViewState.SCANNER:
         return <PrescriptionScanner />;
       case ViewState.USERS:
         return <UserManagement users={users} setUsers={setUsers} currentUser={currentUser} pharmacies={pharmacies} />;
       case ViewState.SALES_HISTORY:
-        return <SalesHistory sales={filteredSales} />;
+        return <SalesHistory sales={sales} />;
       case ViewState.SUPPLIERS:
-        return <Suppliers suppliers={filteredSuppliers} setSuppliers={setSuppliers} />;
+        return <Suppliers suppliers={suppliers} setSuppliers={setSuppliers} />;
       case ViewState.INSURANCES:
-        return <Insurances insurances={filteredInsurances} setInsurances={setInsurances} />;
+        return <Insurances insurances={insurances} setInsurances={setInsurances} />;
       case ViewState.EXPORTS:
-        return <DataExport drugs={filteredDrugs} sales={filteredSales} users={users} suppliers={filteredSuppliers} insurances={filteredInsurances} pharmacies={pharmacies} />;
+        return <DataExport drugs={drugs} sales={sales} users={users} suppliers={suppliers} insurances={insurances} pharmacies={pharmacies} />;
       case ViewState.ORDERS:
-        return <Orders drugs={filteredDrugs} suppliers={filteredSuppliers} />;
+        return <Orders drugs={drugs} suppliers={suppliers} />;
       default:
         return null;
     }
@@ -122,99 +145,96 @@ const App: React.FC = () => {
     if (!allowedRoles.includes(currentUser.role)) return null;
     const isActive = currentView === view;
     return (
-      <button
-        onClick={() => setCurrentView(view)}
-        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 mb-1 ${
-          isActive 
-          ? 'bg-pharmacy-600 text-white shadow-md' 
-          : 'text-gray-600 hover:bg-pharmacy-50 hover:text-pharmacy-700'
-        }`}
-      >
-        <Icon size={20} className={isActive ? 'text-white' : 'text-gray-500'} />
-        <span className="font-medium">{label}</span>
+      <button onClick={() => setCurrentView(view)} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 mb-1 ${isActive ? 'bg-pharmacy-600 text-white shadow-lg' : 'text-gray-500 hover:bg-pharmacy-50 hover:text-pharmacy-700'}`}>
+        <Icon size={18} className={isActive ? 'text-white' : 'text-gray-400'} />
+        <span className="font-bold text-xs uppercase tracking-tight">{label}</span>
       </button>
     );
   };
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans overflow-hidden text-sm md:text-base">
-      {showCashClosing && <CashClosing sales={filteredSales} currentUser={currentUser} onClose={() => setShowCashClosing(false)} pharmacies={pharmacies} />}
+    <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
+      {showCashClosing && <CashClosing sales={sales} currentUser={currentUser} onClose={() => setShowCashClosing(false)} pharmacies={pharmacies} />}
       
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm z-10">
-        <div className="p-6 flex items-center space-x-3 border-b border-gray-100">
-          <div className="bg-pharmacy-600 p-2 rounded-lg text-white shadow-md"><Activity size={24} /></div>
+      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm">
+        <div className="p-6 flex items-center space-x-3 border-b border-gray-100 bg-pharmacy-600 text-white">
+          <div className="bg-white/20 p-2 rounded-lg"><Activity size={24} /></div>
           <div>
-            <h1 className="text-xl font-bold text-gray-800 tracking-tight">Fasopharm</h1>
-            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">{currentUser.role}</p>
+            <h1 className="text-lg font-black tracking-tighter uppercase">Fasopharm</h1>
+            <p className="text-[10px] text-pharmacy-100 font-black uppercase tracking-widest">Core Backend v2</p>
           </div>
         </div>
         
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
           {currentUser.role === 'SUPER_ADMIN' ? (
-            <>
-              <div className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Master Control</div>
+            <div className="space-y-1">
               <NavItem view={ViewState.SUPER_ADMIN_DASHBOARD} icon={Globe} label="Réseau Global" allowedRoles={['SUPER_ADMIN']} />
-              <NavItem view={ViewState.USERS} icon={Users} label="Tous les Staffs" allowedRoles={['SUPER_ADMIN']} />
-              <NavItem view={ViewState.EXPORTS} icon={Database} label="Archives Cloud" allowedRoles={['SUPER_ADMIN']} />
-            </>
+              <NavItem view={ViewState.USERS} icon={Users} label="Utilisateurs" allowedRoles={['SUPER_ADMIN']} />
+              <NavItem view={ViewState.EXPORTS} icon={Database} label="Logs & Rapports" allowedRoles={['SUPER_ADMIN']} />
+            </div>
           ) : (
             <>
-              <div className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                {pharmacies.find(p => p.id === currentPharmacyId)?.name || 'Espace Pharmacie'}
+              <div className="pb-4 border-b border-gray-100">
+                <p className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Pilotage</p>
+                <NavItem view={ViewState.DASHBOARD} icon={LayoutDashboard} label="Dashboard" allowedRoles={['ADMIN']} />
+                <NavItem view={ViewState.POS} icon={ShoppingCart} label="Caisse" allowedRoles={['ADMIN', 'CASHIER', 'SELLER']} />
               </div>
-              <NavItem view={ViewState.DASHBOARD} icon={LayoutDashboard} label="Tableau de Bord" allowedRoles={['ADMIN']} />
-              <NavItem view={ViewState.POS} icon={ShoppingCart} label={currentUser.role === 'SELLER' ? "Préparation" : "Caisse"} allowedRoles={['ADMIN', 'CASHIER', 'SELLER']} />
               
-              <div className="px-4 py-2 mt-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Logistique</div>
-              <NavItem view={ViewState.INVENTORY} icon={Package} label="Stocks" allowedRoles={['ADMIN', 'AGENT']} />
-              <NavItem view={ViewState.ORDERS} icon={ShoppingBag} label="Réappro" allowedRoles={['ADMIN', 'AGENT']} />
-              
-              <div className="px-4 py-2 mt-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Intelligence</div>
-              <NavItem view={ViewState.ASSISTANT} icon={BrainCircuit} label="Assistant IA" allowedRoles={['ADMIN', 'AGENT', 'SELLER', 'CASHIER']} />
-              <NavItem view={ViewState.SCANNER} icon={ScanLine} label="Scan Ordonnance" allowedRoles={['ADMIN', 'AGENT', 'SELLER']} />
-              
-              {currentUser.role === 'ADMIN' && (
-                <>
-                  <div className="px-4 py-2 mt-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Gestion Locale</div>
-                  <NavItem view={ViewState.SALES_HISTORY} icon={History} label="Historique Ventes" allowedRoles={['ADMIN']} />
-                  <NavItem view={ViewState.USERS} icon={Users} label="Mon Personnel" allowedRoles={['ADMIN']} />
-                </>
-              )}
+              <div className="py-4 border-b border-gray-100">
+                <p className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Gestion</p>
+                <NavItem view={ViewState.INVENTORY} icon={Package} label="Stocks" allowedRoles={['ADMIN', 'AGENT', 'SELLER']} />
+                <NavItem view={ViewState.ORDERS} icon={ShoppingBag} label="Commandes" allowedRoles={['ADMIN', 'AGENT']} />
+                <NavItem view={ViewState.SALES_HISTORY} icon={History} label="Historique" allowedRoles={['ADMIN']} />
+              </div>
+
+              <div className="py-4">
+                <p className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Intelligence</p>
+                <NavItem view={ViewState.ASSISTANT} icon={BrainCircuit} label="IA Expert" allowedRoles={['ADMIN', 'AGENT', 'SELLER', 'CASHIER']} />
+                <NavItem view={ViewState.SCANNER} icon={ScanLine} label="Scan Ord." allowedRoles={['ADMIN', 'AGENT', 'SELLER']} />
+              </div>
             </>
           )}
         </nav>
 
-        <div className="p-4 border-t border-gray-100">
-          <div className="mb-4 px-2">
-            <p className="text-[10px] font-bold text-gray-400 uppercase">Utilisateur</p>
-            <p className="font-bold text-gray-700 truncate">{currentUser.fullName}</p>
+        <div className="p-4 border-t border-gray-100 bg-gray-50/50">
+          <div className="flex items-center gap-3 mb-4 p-2 bg-white rounded-xl border border-gray-100 shadow-sm">
+             <div className="w-8 h-8 bg-pharmacy-100 text-pharmacy-600 rounded-lg flex items-center justify-center font-black text-xs">
+                {currentUser.fullName.charAt(0)}
+             </div>
+             <div className="overflow-hidden">
+                <p className="text-[10px] font-black text-gray-800 truncate">{currentUser.fullName}</p>
+                <p className="text-[9px] font-medium text-gray-400 truncate">{pharmacies.find(p => p.id === currentUser.pharmacyId)?.name || 'Central'}</p>
+             </div>
           </div>
-          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 p-2 text-red-600 hover:bg-red-50 rounded-lg transition text-sm font-bold">
-            <LogOut size={18} /> Déconnexion
+          <button onClick={() => setCurrentUser(null)} className="w-full flex items-center justify-center gap-2 p-3 text-red-600 hover:bg-red-50 rounded-xl transition text-[10px] font-black uppercase tracking-widest">
+            <LogOut size={16} /> Déconnexion
           </button>
         </div>
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm z-20">
-          <h2 className="text-xl font-bold text-gray-800">{currentView}</h2>
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 z-20">
           <div className="flex items-center gap-4">
+             <h2 className="text-sm font-black text-gray-800 uppercase tracking-tight">{currentView.replace('_', ' ')}</h2>
+             <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-green-50 rounded-full border border-green-100">
+                <Server size={12} className="text-green-600" />
+                <span className="text-[9px] font-black text-green-700 uppercase tracking-widest">Database Linked</span>
+             </div>
+          </div>
+          <div className="flex items-center gap-3">
             {['ADMIN', 'CASHIER'].includes(currentUser.role) && (
-               <button onClick={() => setShowCashClosing(true)} className="flex items-center gap-2 px-4 py-2 bg-pharmacy-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-pharmacy-600/20 hover:bg-pharmacy-700 transition transform active:scale-95">
-                   <Wallet size={16} /><span>Fin de Journée</span>
+               <button onClick={() => setShowCashClosing(true)} className="flex items-center gap-2 px-4 py-2 bg-pharmacy-600 text-white rounded-xl text-[10px] font-black uppercase hover:bg-pharmacy-700 transition shadow-lg shadow-pharmacy-600/20">
+                   <Wallet size={14} /><span>Clôture</span>
                </button>
             )}
-            {currentUser.role !== 'SUPER_ADMIN' && (
-              <div className="flex items-center gap-2 text-pharmacy-600 bg-pharmacy-50 px-3 py-1.5 rounded-full border border-pharmacy-100">
-                <Building2 size={16} />
-                <span className="text-xs font-black uppercase tracking-tight">{pharmacies.find(p => p.id === currentPharmacyId)?.name}</span>
-              </div>
-            )}
+            <div className="w-px h-6 bg-gray-200 mx-2"></div>
+            <div className="flex items-center gap-2 text-gray-400">
+               <ShieldCheck size={16} />
+               <span className="text-[10px] font-black uppercase tracking-widest">Secured</span>
+            </div>
           </div>
         </header>
-        <div className="flex-1 overflow-auto bg-gray-50 relative">
-          {renderContent()}
-        </div>
+        <div className="flex-1 overflow-auto bg-gray-50/50">{renderContent()}</div>
       </main>
     </div>
   );

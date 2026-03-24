@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Insurance } from '../types';
 import { Plus, Search, Trash2, Edit2, ShieldCheck, Percent } from 'lucide-react';
+import { dbService } from '../services/databaseService';
 
 interface InsurancesProps {
   insurances: Insurance[];
@@ -27,23 +28,30 @@ const Insurances: React.FC<InsurancesProps> = ({ insurances, setInsurances }) =>
     setIsModalOpen(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingInsurance) {
-      setInsurances(insurances.map(i => i.id === editingInsurance.id ? { ...i, ...formData } as Insurance : i));
-    } else {
-      const newInsurance: Insurance = {
-        ...formData,
-        id: Date.now().toString(),
-      } as Insurance;
-      setInsurances([...insurances, newInsurance]);
+    try {
+      if (editingInsurance) {
+        const updated = await dbService.saveInsurance({ ...formData, id: editingInsurance.id });
+        setInsurances(insurances.map(i => i.id === editingInsurance.id ? updated : i));
+      } else {
+        const saved = await dbService.saveInsurance(formData);
+        setInsurances([...insurances, saved]);
+      }
+      setIsModalOpen(false);
+    } catch (error) {
+      alert("Erreur lors de la sauvegarde de l'assurance.");
     }
-    setIsModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Supprimer cette assurance ?')) {
-      setInsurances(insurances.filter(i => i.id !== id));
+      try {
+        await dbService.deleteInsurance(id);
+        setInsurances(insurances.filter(i => i.id !== id));
+      } catch (error) {
+        alert("Erreur lors de la suppression.");
+      }
     }
   };
 
