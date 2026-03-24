@@ -41,16 +41,19 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const loadInitialData = async () => {
+      console.log('App: Starting loadInitialData...');
       try {
         const [p, u] = await Promise.all([
           dbService.getPharmacies(),
           dbService.getUsers()
         ]);
+        console.log('App: Initial data loaded successfully', { pharmaciesCount: p.length, usersCount: u.length });
         setPharmacies(p);
         setUsers(u);
       } catch (err) {
-        console.error('Failed to load initial data:', err);
+        console.error('App: Failed to load initial data:', err);
       } finally {
+        console.log('App: loadInitialData finished, setting isLoading to false');
         setIsLoading(false);
       }
     };
@@ -59,7 +62,11 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const loadAppData = async () => {
-      if (!currentUser) return;
+      if (!currentUser) {
+        console.log('App: No currentUser, skipping loadAppData');
+        return;
+      }
+      console.log('App: Starting loadAppData for user:', currentUser.username);
       setIsLoading(true);
       try {
         const phId = currentUser.role === 'SUPER_ADMIN' ? undefined : currentUser.pharmacyId;
@@ -77,11 +84,13 @@ const App: React.FC = () => {
           setInsurances(ins);
         }
 
+        console.log('App: App data loaded successfully', { drugsCount: d.length, salesCount: s.length });
         setDrugs(d);
         setSales(s);
       } catch (err) {
-        console.error('Failed to load app data:', err);
+        console.error('App: Failed to load app data:', err);
       } finally {
+        console.log('App: loadAppData finished, setting isLoading to false');
         setIsLoading(false);
       }
     };
